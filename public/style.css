@@ -31,3 +31,25 @@ button:hover { background: #45a049; }
     .container { padding: 15px; }
     button { padding: 12px 15px; }
 }
+.app-notice {
+    background-color: #1a2332; 
+    border: 1px solid #2b3b52;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.app-notice p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #b0c4de;
+    line-height: 1.4;
+    text-align: right;
+}
+
+.notice-icon {
+    font-size: 1.5rem;
+}
