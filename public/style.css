@@ -53,3 +53,56 @@ button:hover { background: #45a049; }
 .notice-icon {
     font-size: 1.5rem;
 }
+/* تنسيق قسم وزر تحميل التطبيق */
+.download-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #2c2c2c;
+    text-align: center;
+}
+
+.download-section p {
+    color: #aaaaaa;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+}
+
+.download-btn {
+    display: inline-flex;
+    align-items: center;
+    background-color: #1e1e1e;
+    border: 1px solid #444444;
+    border-radius: 8px;
+    padding: 10px 20px;
+    text-decoration: none;
+    color: white;
+    transition: background-color 0.3s, border-color 0.3s;
+    cursor: pointer;
+    gap: 12px;
+}
+
+.download-btn:hover {
+    background-color: #2a2a2a;
+    border-color: #4CAF50; /* يتحول للأخضر عند تمرير الماوس */
+}
+
+.btn-icon {
+    font-size: 1.8rem;
+}
+
+.btn-text {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+}
+
+.btn-title {
+    font-size: 0.95rem;
+    font-weight: bold;
+}
+
+.btn-subtitle {
+    font-size: 0.75rem;
+    color: #888888;
+    margin-top: 2px;
+}
