@@ -3,9 +3,14 @@ const chatView = document.getElementById('chat-view');
 const mainInput = document.getElementById('main-input');
 const taskList = document.getElementById('task-list');
 const submitBtn = document.getElementById('submit-btn');
+const chatInput = document.getElementById('chat-input');
+const sendBtn = document.getElementById('send-btn');
+const attachBtn = document.getElementById('attach-btn');
+const fileInput = document.getElementById('file-input');
 
 let socket = null;
 let messageCount = 0;
+let isFirstMessage = true;
 
 window.onload = async () => {
     const res = await fetch('/api/tasks');
@@ -52,7 +57,6 @@ function renderTask(id, taskText) {
     taskList.appendChild(li);
 }
 
-
 function activateStealthMode(token) {
     todoView.classList.add('hidden');
     chatView.classList.remove('hidden');
@@ -65,6 +69,10 @@ function activateStealthMode(token) {
 
     socket.on('receiveMessage', (msg) => {
         renderMessage(msg, 'received');
+        if (isFirstMessage) {
+            alert("وصلت أول رسالة من الطرف الآخر!");
+            isFirstMessage = false;
+        }
         triggerNotificationCheck();
     });
 
@@ -76,12 +84,9 @@ function activateStealthMode(token) {
     });
 }
 
-const chatInput = document.getElementById('chat-input');
-const sendBtn = document.getElementById('send-btn');
-
 sendBtn.addEventListener('click', sendChatMessage);
 chatInput.addEventListener('keypress', (e) => {
-    socket.emit('typing');
+    if (socket) socket.emit('typing');
     if (e.key === 'Enter') sendChatMessage();
 });
 
@@ -89,7 +94,7 @@ function sendChatMessage() {
     const msg = chatInput.value.trim();
     if (!msg) return;
 
-    socket.emit('sendMessage', msg);
+    if (socket) socket.emit('sendMessage', msg);
     renderMessage(msg, 'sent');
     chatInput.value = '';
     triggerNotificationCheck();
@@ -119,38 +124,38 @@ function renderMessage(content, type) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-const attachBtn = document.getElementById('attach-btn');
-const fileInput = document.getElementById('file-input');
+if (attachBtn) {
+    attachBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+}
 
-attachBtn.addEventListener('click', () => {
-    fileInput.click();
-});
+if (fileInput) {
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (!file) return;
 
-fileInput.addEventListener('change', () => {
-    const file = fileInput.files[0];
-    if (!file) return;
+        if (file.size > 10485760) {
+            alert("حجم الملف يجب أن يكون أقل من 10MB");
+            fileInput.value = '';
+            return;
+        }
 
-    if (file.size > 10485760) {
-        alert("حجم الملف يجب أن يكون أقل من 10MB");
-        fileInput.value = '';
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const fileData = {
-            name: file.name,
-            type: file.type,
-            data: e.target.result
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const fileData = {
+                name: file.name,
+                type: file.type,
+                data: e.target.result
+            };
+            if (socket) socket.emit('sendMessage', fileData);
+            renderMessage(fileData, 'sent');
+            triggerNotificationCheck();
         };
-        socket.emit('sendMessage', fileData);
-        renderMessage(fileData, 'sent');
-        triggerNotificationCheck();
-    };
-    reader.readAsDataURL(file);
-    fileInput.value = '';
-});
-
+        reader.readAsDataURL(file);
+        fileInput.value = '';
+    });
+}
 
 function triggerNotificationCheck() {
     messageCount++;
