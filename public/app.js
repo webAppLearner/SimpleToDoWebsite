@@ -8,6 +8,17 @@ const sendBtn = document.getElementById('send-btn');
 const attachBtn = document.getElementById('attach-btn');
 const fileInput = document.getElementById('file-input');
 
+const imageModal = document.getElementById('image-modal');
+const modalImg = document.getElementById('modal-img');
+const closeModal = document.getElementById('close-modal');
+
+  
+if (closeModal && imageModal) {
+    closeModal.onclick = () => imageModal.classList.add('hidden');
+    imageModal.onclick = (e) => {
+        if (e.target !== modalImg) imageModal.classList.add('hidden');
+    };
+}
 let socket = null;
 let messageCount = 0;
 let isFirstMessage = true;
@@ -110,6 +121,13 @@ function renderMessage(content, type) {
         if (content.type.startsWith('image/')) {
             const img = document.createElement('img');
             img.src = content.data;
+            
+            // تفعيل تكبير الصورة عند الضغط عليها
+            img.onclick = () => {
+                modalImg.src = content.data;
+                imageModal.classList.remove('hidden');
+            };
+            
             div.appendChild(img);
         } else if (content.type.startsWith('video/')) {
             const video = document.createElement('video');
