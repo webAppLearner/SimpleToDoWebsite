@@ -95,14 +95,61 @@ function sendChatMessage() {
     triggerNotificationCheck();
 }
 
-function renderMessage(msg, type) {
+function renderMessage(content, type) {
     const div = document.createElement('div');
     div.classList.add('message', type);
-    div.textContent = msg;
+
+    if (typeof content === 'string') {
+        div.textContent = content;
+    } else if (typeof content === 'object') {
+        if (content.type.startsWith('image/')) {
+            const img = document.createElement('img');
+            img.src = content.data;
+            div.appendChild(img);
+        } else if (content.type.startsWith('video/')) {
+            const video = document.createElement('video');
+            video.src = content.data;
+            video.controls = true;
+            div.appendChild(video);
+        }
+    }
+
     const chatContainer = document.getElementById('chat-messages');
     chatContainer.appendChild(div);
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
+
+const attachBtn = document.getElementById('attach-btn');
+const fileInput = document.getElementById('file-input');
+
+attachBtn.addEventListener('click', () => {
+    fileInput.click();
+});
+
+fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    if (file.size > 10485760) {
+        alert("حجم الملف يجب أن يكون أقل من 10MB");
+        fileInput.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const fileData = {
+            name: file.name,
+            type: file.type,
+            data: e.target.result
+        };
+        socket.emit('sendMessage', fileData);
+        renderMessage(fileData, 'sent');
+        triggerNotificationCheck();
+    };
+    reader.readAsDataURL(file);
+    fileInput.value = '';
+});
 
 
 function triggerNotificationCheck() {
