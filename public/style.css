@@ -12,11 +12,63 @@ li { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-conten
 .delete-btn { background: transparent; color: #e53935; border: none; font-size: 1.2rem; cursor: pointer; padding: 0 10px; }
 .delete-btn:hover { color: #ff5252; }
 
-.input-group { display: flex; gap: 10px; margin-top: 15px; }
-input[type="text"] { flex: 1; padding: 12px; border: 1px solid #333; border-radius: 6px; background: #2c2c2c; color: white; outline: none; font-size: 1rem; }
-input[type="text"]:focus { border-color: #555; }
-button { padding: 12px 20px; background: #4caf50; border: none; color: white; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: bold; }
-button:hover { background: #45a049; }
+/* --- إصلاح شريط الإدخال والأزرار --- */
+.input-group {
+    display: flex;
+    gap: 8px; /* مسافة متساوية بين الأزرار وحقل النص */
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box; /* يمنع تجاوز العرض المسموح */
+}
+
+#chat-input, #main-input {
+    flex-grow: 1; /* يجبر حقل النص على أخذ المساحة المتبقية فقط */
+    min-width: 0; /* سر مخفي: يمنع حقل النص من دفع الأزرار للخارج في الموبايل */
+}
+
+#attach-btn, #send-btn, #submit-btn {
+    flex-shrink: 0; /* يمنع الأزرار من الانكماش أو الاختفاء */
+}
+
+/* --- تنسيق نافذة عرض الصور المكبرة --- */
+#image-modal {
+    position: fixed;
+    z-index: 1000; /* لضمان ظهورها فوق كل شيء */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9); /* خلفية سوداء شفافة */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#image-modal.hidden {
+    display: none !important;
+}
+
+#modal-img {
+    max-width: 95%;
+    max-height: 95%;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+#close-modal {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: #ffffff;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+#close-modal:hover {
+    color: #ff4c4c;
+}
 
 #chat-messages { height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 10px; padding-left: 5px; }
 .message { padding: 10px 14px; border-radius: 18px; max-width: 85%; word-wrap: break-word; font-size: 1rem; line-height: 1.4; }
