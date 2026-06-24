@@ -9,16 +9,23 @@ body {
     background-color: #121212;
     color: #ffffff;
     direction: rtl;
-    padding: 20px;
+    padding: 0;
+    margin: 0;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .container {
-    max-width: 500px;
-    margin: 40px auto;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
     background-color: #1e1e1e;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    padding: 15px;
+    border-radius: 0;
+    box-shadow: none;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .hidden {
@@ -26,14 +33,16 @@ body {
 }
 
 h2 {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     font-size: 1.4rem;
     color: #ffffff;
 }
 
 ul {
     list-style: none;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+    flex-grow: 1;
+    overflow-y: auto;
 }
 
 li {
@@ -61,6 +70,7 @@ li {
     align-items: center;
     width: 100%;
     box-sizing: border-box;
+    padding-bottom: 10px;
 }
 
 #chat-input, #main-input {
@@ -124,7 +134,7 @@ button:hover {
 }
 
 #chat-messages {
-    height: 350px;
+    flex-grow: 1;
     overflow-y: auto;
     border: 1px solid #2c2c2c;
     padding: 15px;
@@ -182,7 +192,6 @@ button:hover {
     border: 1px solid #2b3b52;
 }
 
- Bomber-style full screen modal -->
 #image-modal {
     position: fixed;
     z-index: 1000;
@@ -219,7 +228,7 @@ button:hover {
 }
 
 .download-section {
-    margin-top: 30px;
+    margin-top: auto;
     padding-top: 20px;
     border-top: 1px solid #2c2c2c;
     text-align: center;
@@ -251,3 +260,22 @@ button:hover {
 }
 
 .btn-icon {
+    font-size: 1.8rem;
+}
+
+.btn-text {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+}
+
+.btn-title {
+    font-size: 0.95rem;
+    font-weight: bold;
+}
+
+.btn-subtitle {
+    font-size: 0.75rem;
+    color: #888888;
+    margin-top: 2px;
+}
