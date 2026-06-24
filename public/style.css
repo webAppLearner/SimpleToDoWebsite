@@ -1,51 +1,199 @@
-* { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-body { background-color: #121212; color: #e0e0e0; display: flex; justify-content: center; padding-top: 5vh; margin: 0; padding-bottom: 20px; }
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
-.container { width: 95%; max-width: 450px; background: #1e1e1e; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-.hidden { display: none !important; }
+body {
+    font-family: Arial, sans-serif;
+    background-color: #121212;
+    color: #ffffff;
+    direction: rtl;
+    padding: 20px;
+}
 
-h2 { margin-top: 0; color: #ffffff; font-weight: 500; font-size: 1.4rem; }
+.container {
+    max-width: 500px;
+    margin: 40px auto;
+    background-color: #1e1e1e;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
 
-ul { list-style-type: none; padding: 0; margin-bottom: 20px; max-height: 50vh; overflow-y: auto; }
-li { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; word-break: break-word; }
+.hidden {
+    display: none !important;
+}
 
-.delete-btn { background: transparent; color: #e53935; border: none; font-size: 1.2rem; cursor: pointer; padding: 0 10px; }
-.delete-btn:hover { color: #ff5252; }
+h2 {
+    margin-bottom: 20px;
+    font-size: 1.4rem;
+    color: #ffffff;
+}
 
-/* --- إصلاح شريط الإدخال والأزرار --- */
+ul {
+    list-style: none;
+    margin-bottom: 20px;
+}
+
+li {
+    background-color: #2c2c2c;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    color: #ff4c4c;
+    cursor: pointer;
+    font-size: 1.1rem;
+}
+
 .input-group {
     display: flex;
-    gap: 8px; /* مسافة متساوية بين الأزرار وحقل النص */
+    gap: 8px;
     align-items: center;
     width: 100%;
-    box-sizing: border-box; /* يمنع تجاوز العرض المسموح */
+    box-sizing: border-box;
 }
 
 #chat-input, #main-input {
-    flex-grow: 1; /* يجبر حقل النص على أخذ المساحة المتبقية فقط */
-    min-width: 0; /* سر مخفي: يمنع حقل النص من دفع الأزرار للخارج في الموبايل */
+    flex-grow: 1;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #444444;
+    border-radius: 6px;
+    background-color: #2c2c2c;
+    color: #ffffff;
+    font-size: 0.95rem;
+    outline: none;
 }
 
-#attach-btn, #send-btn, #submit-btn {
-    flex-shrink: 0; /* يمنع الأزرار من الانكماش أو الاختفاء */
+#chat-input:focus, #main-input:focus {
+    border-color: #4CAF50;
 }
 
-/* --- تنسيق نافذة عرض الصور المكبرة --- */
+button {
+    flex-shrink: 0;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    background-color: #4CAF50;
+    color: #ffffff;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+#attach-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 5px;
+    color: #aaaaaa;
+}
+
+#attach-btn:hover {
+    color: #ffffff;
+}
+
+#chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #2c2c2c;
+    padding-bottom: 10px;
+}
+
+#typing-indicator {
+    font-size: 0.8rem;
+    color: #888888;
+}
+
+#chat-messages {
+    height: 350px;
+    overflow-y: auto;
+    border: 1px solid #2c2c2c;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    background-color: #141414;
+}
+
+.message {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    max-width: 75%;
+    clear: both;
+    word-wrap: break-word;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.sent {
+    background-color: #2196F3;
+    color: #ffffff;
+    float: left;
+}
+
+.received {
+    background-color: #333333;
+    color: #ffffff;
+    float: right;
+}
+
+.message img, .message video {
+    max-width: 100%;
+    max-height: 250px;
+    width: auto;
+    border-radius: 8px;
+    margin-top: 8px;
+    display: block;
+    object-fit: cover;
+    cursor: pointer;
+}
+
+#notification-banner {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #1a2332;
+    color: #b0c4de;
+    padding: 12px 24px;
+    border-radius: 30px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    z-index: 999;
+    font-size: 0.9rem;
+    border: 1px solid #2b3b52;
+}
+
+ Bomber-style full screen modal -->
 #image-modal {
     position: fixed;
-    z-index: 1000; /* لضمان ظهورها فوق كل شيء */
+    z-index: 1000;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.9); /* خلفية سوداء شفافة */
+    background-color: rgba(0, 0, 0, 0.9);
     display: flex;
     justify-content: center;
     align-items: center;
-}
-
-#image-modal.hidden {
-    display: none !important;
 }
 
 #modal-img {
@@ -70,42 +218,6 @@ li { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-conten
     color: #ff4c4c;
 }
 
-#chat-messages { height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 10px; padding-left: 5px; }
-.message { padding: 10px 14px; border-radius: 18px; max-width: 85%; word-wrap: break-word; font-size: 1rem; line-height: 1.4; }
-.message.sent { background: #2196f3; align-self: flex-end; color: white; border-bottom-right-radius: 4px; }
-.message.received { background: #333; align-self: flex-start; color: white; border-bottom-left-radius: 4px; }
-#chat-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
-#typing-indicator { font-size: 0.85em; color: #888; font-style: italic; }
-
-#notification-banner { position: fixed; top: 20px; left: 20px; right: 20px; max-width: 400px; margin: auto; background: #333; color: #fff; padding: 15px 20px; border-right: 4px solid #ff9800; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); transition: opacity 0.3s; z-index: 1000; text-align: center; }
-
-@media (max-width: 400px) {
-    .container { padding: 15px; }
-    button { padding: 12px 15px; }
-}
-.app-notice {
-    background-color: #1a2332; 
-    border: 1px solid #2b3b52;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.app-notice p {
-    margin: 0;
-    font-size: 0.85rem;
-    color: #b0c4de;
-    line-height: 1.4;
-    text-align: right;
-}
-
-.notice-icon {
-    font-size: 1.5rem;
-}
-/* تنسيق قسم وزر تحميل التطبيق */
 .download-section {
     margin-top: 30px;
     padding-top: 20px;
@@ -135,44 +247,7 @@ li { padding: 12px; border-bottom: 1px solid #333; display: flex; justify-conten
 
 .download-btn:hover {
     background-color: #2a2a2a;
-    border-color: #4CAF50;  
+    border-color: #4CAF50;
 }
 
 .btn-icon {
-    font-size: 1.8rem;
-}
-
-.btn-text {
-    display: flex;
-    flex-direction: column;
-    text-align: right;
-}
-
-.btn-title {
-    font-size: 0.95rem;
-    font-weight: bold;
-}
-
-.btn-subtitle {
-    font-size: 0.75rem;
-    color: #888888;
-    margin-top: 2px;
-}
-.message img, .message video {
-    max-width: 100%;       
-    max-height: 250px;     
-    width: auto;           
-    border-radius: 8px;
-    margin-top: 8px;
-    display: block;
-    object-fit: cover;   
-    cursor: pointer;     
-}
-
-#attach-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0 10px;
-}
