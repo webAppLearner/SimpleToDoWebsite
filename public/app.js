@@ -87,6 +87,12 @@ function activateStealthMode(token) {
         triggerNotificationCheck();
     });
 
+socket.on('chatHistory', (messages) => {
+    messages.forEach(msgData => {
+        // نعرضها كرسائل مستلمة (أو حسب تصميمك القديم)
+        renderMessage(msgData, 'received');
+    });
+});
     socket.on('typing', () => {
         const ind = document.getElementById('typing-indicator');
         ind.classList.remove('hidden');
