@@ -1,96 +1,181 @@
-require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const bcrypt = require('bcrypt');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const mongoose = require('mongoose');
+
+
+const MONGO_URI = "mongodb+srv://jumkhlil_db_user:jumaahklx758274@cluster0.yzk2tsj.mongodb.net/secureChat?appName=Cluster0";
 
 const app = express();
 const server = http.createServer(app);
+
 const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    },
-    maxHttpBufferSize: 10485760
-});
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
-
-const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'));
-
-db.serialize(() => {
-    db.run("CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT)");
-    db.run("CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT, msg TEXT)");
+    cors: { origin: "*" },
+    maxHttpBufferSize: 52428800 // 50 MB
 });
 
-const activeTokens = new Set();
+// الاتصال بقاعدة البيانات
+mongoose.connect(MONGO_URI).then(() => {
+    console.log("تم الاتصال بقاعدة البيانات بنجاح!");
+}).catch(err => console.log("خطأ في الاتصال بقاعدة البيانات:", err));
 
-
-app.post('/api/input', async (req, res) => {
-    const { input } = req.body;
-    const isPassword = await bcrypt.compare(input, process.env.SECRET_HASH);
-
-    if (isPassword) {
-        const token = require('crypto').randomBytes(32).toString('hex');
-        activeTokens.add(token);
-        setTimeout(() => activeTokens.delete(token), 3600000); 
-        return res.json({ action: 'CHAT_ACCESS', token });
-    } else {
-        const stmt = db.prepare("INSERT INTO tasks (task) VALUES (?)");
-        stmt.run(input, function(err) {
-            res.json({ action: 'TASK_ADDED', id: this.lastID, task: input });
-        });
-        stmt.finalize();
+// تصميم جدول الرسائل مع خاصية الحذف التلقائي بعد 48 ساعة
+const messageSchema = new mongoose.Schema({
+    roomCode: String,
+    senderDeviceId: String,
+    messageData: mongoose.Schema.Types.Mixed,
+    createdAt: { 
+        type: Date, 
+        default: Date.now, 
+        expires: 172800 // 172800 ثانية = 48 ساعة بالضبط
     }
 });
+const Message = mongoose.model('Message', messageSchema);
 
-app.get('/api/tasks', (req, res) => {
-    db.all("SELECT * FROM tasks", [], (err, rows) => {
-        res.json(rows);
-    });
-});
+const rooms = new Map();
 
-app.delete('/api/tasks/:id', (req, res) => {
-    db.run("DELETE FROM tasks WHERE id = ?", req.params.id, function(err) {
-        res.json({ success: true });
-    });
-});
+io.on('connection', async (socket) => {
+    const { roomCode, deviceId } = socket.handshake.query;
 
-
-io.use((socket, next) => {
-    const token = socket.handshake.auth.token;
-    if (activeTokens.has(token)) {
-        socket.userToken = token; // حفظ التوكن لمعرفة مرسل الرسالة
-        next();
-    } else {
-        next(new Error("Unauthorized access"));
+    if (!roomCode || !deviceId) {
+        socket.disconnect();
+        return;
     }
-});
 
-io.on('connection', (socket) => {
-    const query = "SELECT * FROM (SELECT * FROM messages ORDER BY id DESC LIMIT 10) ORDER BY id ASC";
-    db.all(query, [], (err, rows) => {
-        if (rows && rows.length > 0) {
-            const history = rows.map(r => ({
-                msg: r.msg,
-                type: r.token === socket.userToken ? 'sent' : 'received'
-            }));
-            socket.emit('chatHistory', history);
+    if (!rooms.has(roomCode)) {
+        rooms.set(roomCode, new Set());
+    }
+
+    const roomDevices = rooms.get(roomCode);
+
+    if (roomDevices.has(deviceId) || roomDevices.size < 2) {
+        roomDevices.add(deviceId);
+        socket.join(roomCode);
+        console.log(`اتصال جديد: الغرفة ${roomCode} | الأجهزة: ${roomDevices.size}/2`);
+
+        try {
+            // جلب تاريخ الرسائل القديمة (لآخر 48 ساعة) عند دخول الغرفة
+            const history = await Message.find({ roomCode }).sort({ createdAt: 1 });
+            // إرسال السجل لهذا المستخدم فقط حتى لو كان عائداً بعد انقطاع
+            socket.emit('chatHistory', history.map(h => ({
+                msg: h.messageData,
+                // نحدد نوع الرسالة (مرسلة أم مستلمة) بناءً على معرف الجهاز
+                type: h.senderDeviceId === deviceId ? 'sent' : 'received'
+            })));
+        } catch (e) {
+            console.log("خطأ في جلب السجل");
         }
-    });
 
-    socket.on('sendMessage', (msg) => {
-        db.run("INSERT INTO messages (token, msg) VALUES (?, ?)", [socket.userToken, msg]);
-        
-        socket.broadcast.emit('receiveMessage', msg);
-    });
+        socket.on('sendMessage', async (messageData) => {
+            // حفظ الرسالة في قاعدة البيانات
+            const newMsg = new Message({ roomCode, senderDeviceId: deviceId, messageData });
+            await newMsg.save();
 
-    socket.on('typing', () => {
-        socket.broadcast.emit('typing');
-    });
+            // بث الرسالة للطرف الآخر في الغرفة
+            socket.to(roomCode).emit('receiveMessage', messageData);
+        });
+
+        socket.on('typing', () => {
+            socket.to(roomCode).emit('typing');
+        });
+
+        socket.on('disconnect', () => {
+            console.log(`انقطاع اتصال في الغرفة: ${roomCode}`);
+        });
+
+    } else {
+        socket.emit('error', 'الغرفة ممتلئة.');
+        socket.disconnect();
+    }
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`App running on port ${PORT}`));
+server.listen(PORT, () => {
+    console.log(`السيرفر يعمل على بورت ${PORT}`);
+});
+
+const app = express();
+const server = http.createServer(app);
+
+const io = new Server(server, {
+    cors: { origin: "*" },
+    maxHttpBufferSize: 52428800 // 50 MB
+});
+
+// الاتصال بقاعدة البيانات
+mongoose.connect(MONGO_URI).then(() => {
+    console.log("تم الاتصال بقاعدة البيانات بنجاح!");
+}).catch(err => console.log("خطأ في الاتصال بقاعدة البيانات:", err));
+
+// تصميم جدول الرسائل مع خاصية الحذف التلقائي بعد 48 ساعة
+const messageSchema = new mongoose.Schema({
+    roomCode: String,
+    senderDeviceId: String,
+    messageData: mongoose.Schema.Types.Mixed,
+    createdAt: { 
+        type: Date, 
+        default: Date.now, 
+        expires: 172800 // 172800 ثانية = 48 ساعة بالضبط
+    }
+});
+const Message = mongoose.model('Message', messageSchema);
+
+const rooms = new Map();
+
+io.on('connection', async (socket) => {
+    const { roomCode, deviceId } = socket.handshake.query;
+
+    if (!roomCode || !deviceId) {
+        socket.disconnect();
+        return;
+    }
+
+    if (!rooms.has(roomCode)) {
+        rooms.set(roomCode, new Set());
+    }
+
+    const roomDevices = rooms.get(roomCode);
+
+    if (roomDevices.has(deviceId) || roomDevices.size < 2) {
+        roomDevices.add(deviceId);
+        socket.join(roomCode);
+        console.log(`اتصال جديد: الغرفة ${roomCode} | الأجهزة: ${roomDevices.size}/2`);
+
+        try {
+            // جلب تاريخ الرسائل القديمة (لآخر 48 ساعة) عند دخول الغرفة
+            const history = await Message.find({ roomCode }).sort({ createdAt: 1 });
+            // إرسال السجل لهذا المستخدم فقط حتى لو كان عائداً بعد انقطاع
+            socket.emit('chatHistory', history.map(h => ({
+                msg: h.messageData,
+                // نحدد نوع الرسالة (مرسلة أم مستلمة) بناءً على معرف الجهاز
+                type: h.senderDeviceId === deviceId ? 'sent' : 'received'
+            })));
+        } catch (e) {
+            console.log("خطأ في جلب السجل");
+        }
+
+        socket.on('sendMessage', async (messageData) => {
+            const newMsg = new Message({ roomCode, senderDeviceId: deviceId, messageData });
+            await newMsg.save();
+
+            socket.to(roomCode).emit('receiveMessage', messageData);
+        });
+
+        socket.on('typing', () => {
+            socket.to(roomCode).emit('typing');
+        });
+
+        socket.on('disconnect', () => {
+            console.log(`انقطاع اتصال في الغرفة: ${roomCode}`);
+        });
+
+    } else {
+        socket.emit('error', 'الغرفة ممتلئة.');
+        socket.disconnect();
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`السيرفر يعمل على بورت ${PORT}`);
+});
