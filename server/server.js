@@ -2,25 +2,28 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const mongoose = require('mongoose');
-const MONGO_URI = "mongodb+srv://jumkhlil_db_user:jumaahklx758274@cluster0.yzk2tsj.mongodb.net/secureChat?appName=Cluster0";
 
 const app = express();
 const server = http.createServer(app);
 
+// ربط مجلد الواجهة (HTML, CSS, JS)
+app.use(express.static('public'));
+
 const io = new Server(server, {
     cors: { origin: "*" },
-    maxHttpBufferSize: 52428800 // 50 MB
+    maxHttpBufferSize: 52428800 // 50 MB لدعم الصور
 });
+
+// ⚠️ ضع الباسورد الخاص بك هنا
+const MONGO_URI = "mongodb+srv://jumkhlil_db_user:jumaahklx758274@cluster0.yzk2tsj.mongodb.net/secureChat?appName=Cluster0";
 
 // الاتصال بقاعدة البيانات
 mongoose.connect(MONGO_URI).then(() => {
     console.log("تم الاتصال بقاعدة البيانات بنجاح!");
 }).catch(err => console.log("خطأ في الاتصال بقاعدة البيانات:", err));
 
-
+// تصميم جدول الرسائل للحفظ (وتنحذف تلقائياً بعد 48 ساعة)
 const messageSchema = new mongoose.Schema({
-    roomCode: String,
-    senderDeviceId: String,
     messageData: mongoose.Schema.Types.Mixed,
     createdAt: { 
         type: Date, 
@@ -30,55 +33,39 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model('Message', messageSchema);
 
-const rooms = new Map();
-
 io.on('connection', async (socket) => {
-    const { roomCode, deviceId } = socket.handshake.query;
+    console.log('مستخدم جديد اتصل بالمحادثة');
 
-    if (!roomCode || !deviceId) {
-        socket.disconnect();
-        return;
+    // 1. جلب الرسائل القديمة فور دخول المستخدم وإرسالها له
+    try {
+        const history = await Message.find().sort({ createdAt: 1 });
+        // نرسل السجل كـ مصفوفة
+        socket.emit('chatHistory', history.map(h => h.messageData));
+    } catch (e) {
+        console.log("خطأ في جلب السجل");
     }
 
-    if (!rooms.has(roomCode)) {
-        rooms.set(roomCode, new Set());
-    }
-
-    const roomDevices = rooms.get(roomCode);
-
-    if (roomDevices.has(deviceId) || roomDevices.size < 2) {
-        roomDevices.add(deviceId);
-        socket.join(roomCode);
-        console.log(`اتصال جديد: الغرفة ${roomCode} | الأجهزة: ${roomDevices.size}/2`);
-
+    // 2. استلام رسالة جديدة
+    socket.on('sendMessage', async (messageData) => {
+        // حفظ الرسالة في السحابة
         try {
-            const history = await Message.find({ roomCode }).sort({ createdAt: 1 });
-            socket.emit('chatHistory', history.map(h => ({
-                msg: h.messageData,
-                type: h.senderDeviceId === deviceId ? 'sent' : 'received'
-            })));
-        } catch (e) {
-            console.log("خطأ في جلب السجل");
+            const newMsg = new Message({ messageData });
+            await newMsg.save();
+        } catch (err) {
+            console.log("خطأ في حفظ الرسالة:", err);
         }
 
-        socket.on('sendMessage', async (messageData) => {
-            const newMsg = new Message({ roomCode, senderDeviceId: deviceId, messageData });
-            await newMsg.save();
-            socket.to(roomCode).emit('receiveMessage', messageData);
-        });
+        // إرسالها للطرف الآخر
+        socket.broadcast.emit('receiveMessage', messageData);
+    });
 
-        socket.on('typing', () => {
-            socket.to(roomCode).emit('typing');
-        });
+    socket.on('typing', () => {
+        socket.broadcast.emit('typing');
+    });
 
-        socket.on('disconnect', () => {
-            console.log(`انقطاع اتصال في الغرفة: ${roomCode}`);
-        });
-
-    } else {
-        socket.emit('error', 'الغرفة ممتلئة.');
-        socket.disconnect();
-    }
+    socket.on('disconnect', () => {
+        console.log('المستخدم غادر المحادثة');
+    });
 });
 
 const PORT = process.env.PORT || 3000;
