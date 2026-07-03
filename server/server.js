@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '/public')));
 
 // ⚠️ رابط قاعدة البيانات السحابية (يفضل وضعه في ملف .env مستقبلاً)
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://jumkhlil_db_user:<jumaahklx758274>@cluster0.yzk2tsj.mongodb.net/?appName=Cluster0";
