@@ -3,91 +3,70 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const bcrypt = require('bcrypt');
-const mongoose = require('mongoose'); // استبدال مكتبة sqlite3
 const path = require('path');
-const crypto = require('crypto'); // ضروري لتوليد التوكن
+const crypto = require('crypto');
+const cors = require('cors'); // مضافة لضمان قبول اتصالات فلاتر بدون حظر
 
 const app = express();
 const server = http.createServer(app);
 
-// رفع حد البفر لدعم الصور والمقاطع
-const io = new Server(server, { 
-    cors: { origin: "*" }, 
-    maxHttpBufferSize: 52428800 
+// إعداد الـ Socket.io مع السماح لجميع الاتصالات الخارجية (CORS)
+const io = new Server(server, {
+    cors: { origin: "*" },
+    maxHttpBufferSize: 52428800 // 50 MB لدعم الصور والمستندات
 });
 
+app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '/public')));
 
-// ⚠️ رابط قاعدة البيانات السحابية (يفضل وضعه في ملف .env مستقبلاً)
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://jumkhlil_db_user:<jumaahklx758274>@cluster0.yzk2tsj.mongodb.net/?appName=Cluster0";
+// ربط مجلد الملفات العامة (تأكد من تعديل المسار حسب هيكلة مجلداتك)
+app.use(express.static(path.join(__dirname, 'public')));
 
-// الاتصال بقاعدة بيانات MongoDB السحابية
-mongoose.connect(MONGO_URI).then(() => {
-    console.log("تم الاتصال بقاعدة بيانات MongoDB بنجاح!");
-}).catch(err => console.log("خطأ في الاتصال بقاعدة البيانات:", err));
-
-// --- بناء الجداول (Schemas) ---
-
-// 1. جدول المهام (للتمويه)
-const taskSchema = new mongoose.Schema({
-    task: String
-});
-const Task = mongoose.model('Task', taskSchema);
-
-// 2. جدول الرسائل (مع خاصية الحذف التلقائي بعد 48 ساعة)
-const messageSchema = new mongoose.Schema({
-    token: String,
-    msg: String,
-    createdAt: { type: Date, default: Date.now, expires: 172800 }
-});
-const Message = mongoose.model('Message', messageSchema);
-
+// --- الذاكرة المؤقتة البديلة لقواعد البيانات ---
+let tasks = [];       // مصفوفة لحفظ المهام الوهمية
+let messages = [];    // مصفوفة لحفظ الرسائل (آخر 10 رسائل)
 const activeTokens = new Set();
 
-// --- مسارات HTTP للمهام (To-Do List) ---
+// --- مسارات HTTP للمهام الوهمية (To-Do) ---
 
 app.post('/api/input', async (req, res) => {
     try {
         const { input } = req.body;
-        const isPassword = await bcrypt.compare(input, process.env.SECRET_HASH);
+        
+        // التحقق من كلمة السر المشفرة في ملف .env
+        // إذا لم يكن الملف موجوداً، سيتم مقارنتها بكلمة سر افتراضية هي "12345" لضمان عدم انهيار السيرفر
+        const secretHash = process.env.SECRET_HASH || await bcrypt.hash("12345", 10);
+        const isPassword = await bcrypt.compare(input, secretHash);
 
         if (isPassword) {
-            // توليد توكن سري وإعطاء صلاحية للدردشة
             const token = crypto.randomBytes(32).toString('hex');
             activeTokens.add(token);
-            setTimeout(() => activeTokens.delete(token), 3600000); // يحذف بعد ساعة
+            setTimeout(() => activeTokens.delete(token), 3600000); // صلاحية التوكن ساعة واحدة
             return res.json({ action: 'CHAT_ACCESS', token });
         } else {
-            // حفظ كمهمة عادية في قاعدة البيانات
-            const newTask = await Task.create({ task: input });
-            // إرجاع id بدلاً من _id ليتوافق مع واجهتك القديمة
-            res.json({ action: 'TASK_ADDED', id: newTask._id, task: input });
+            // حفظ المهمة في ذاكرة السيرفر المؤقتة بدلاً من SQLite
+            const taskId = Date.now(); // توليد معرف فريد مؤقت بناءً على الوقت
+            const newTask = { id: taskId, task: input };
+            tasks.push(newTask);
+            
+            return res.json({ action: 'TASK_ADDED', id: taskId, task: input });
         }
     } catch (error) {
-        console.error("Error in /api/input:", error);
+        console.error(error);
         res.status(500).json({ error: "Server Error" });
     }
 });
 
-app.get('/api/tasks', async (req, res) => {
-    try {
-        const tasks = await Task.find();
-        // إعادة صياغة الـ id ليتوافق مع الفرونت إند
-        const formattedTasks = tasks.map(t => ({ id: t._id, task: t.task }));
-        res.json(formattedTasks);
-    } catch (error) {
-        res.status(500).json({ error: "Error fetching tasks" });
-    }
+app.get('/api/tasks', (req, res) => {
+    // جلب المهام من الذاكرة مباشرة
+    res.json(tasks);
 });
 
-app.delete('/api/tasks/:id', async (req, res) => {
-    try {
-        await Task.findByIdAndDelete(req.params.id);
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: "Error deleting task" });
-    }
+app.delete('/api/tasks/:id', (req, res) => {
+    const taskId = req.params.id;
+    // حذف المهمة من المصفوفة
+    tasks = tasks.filter(t => t.id.toString() !== taskId.toString());
+    res.json({ success: true });
 });
 
 // --- مسارات Socket.io للدردشة السرية ---
@@ -102,38 +81,36 @@ io.use((socket, next) => {
     }
 });
 
-io.on('connection', async (socket) => {
-    // جلب آخر 10 رسائل من قاعدة البيانات السحابية وإرسالها للمستخدم عند الدخول
-    try {
-        // فرز تنازلي لجلب أحدث 10، ثم عكسها لتعرض بالترتيب الصحيح (من الأقدم للأحدث)
-        const rows = await Message.find().sort({ createdAt: -1 }).limit(10);
-        const sortedRows = rows.reverse();
+io.on('connection', (socket) => {
+    console.log('مستخدم متصل بالدردشة السرية');
 
-        if (sortedRows.length > 0) {
-            const history = sortedRows.map(r => ({
-                msg: r.msg,
-                type: r.token === socket.userToken ? 'sent' : 'received'
-            }));
-            socket.emit('chatHistory', history);
-        }
-    } catch (error) {
-        console.error("خطأ في جلب السجل:", error);
-    }
+    // جلب آخر 10 رسائل من الذاكرة وإرسالها للمستخدم فور دخوله
+    const history = messages.slice(-10).map(m => ({
+        msg: m.msg,
+        type: m.token === socket.userToken ? 'sent' : 'received'
+    }));
+    socket.emit('chatHistory', history);
 
-    socket.on('sendMessage', async (msg) => {
-        try {
-            // حفظ الرسالة في السحابة
-            await Message.create({ token: socket.userToken, msg });
-            // إرسالها للطرف الآخر
-            socket.broadcast.emit('receiveMessage', msg);
-        } catch (error) {
-            console.error("خطأ في حفظ الرسالة:", error);
-        }
+    socket.on('sendMessage', (msg) => {
+        // حفظ الرسالة في ذاكرة السيرفر
+        messages.push({ token: socket.userToken, msg: msg });
+        
+        // بث الرسالة للطرف الآخر
+        socket.broadcast.emit('receiveMessage', msg);
     });
 
     socket.on('typing', () => {
         socket.broadcast.emit('typing');
     });
+
+    socket.on('disconnect', () => {
+        console.log('مستخدم غادر الدردشة');
+    });
+});
+
+// إضافة مسار رئيسي للتأكد من عمل السيرفر عند فتحه من المتصفح
+app.get('/', (req, res) => {
+    res.send('<h1>سيرفر المحادثة والمهام يعمل بنجاح وبدون قواعد بيانات 🚀</h1>');
 });
 
 const PORT = process.env.PORT || 3000;
