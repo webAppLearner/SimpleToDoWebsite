@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
 // ⚠️ رابط قاعدة البيانات السحابية (يفضل وضعه في ملف .env مستقبلاً)
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://jumkhlil_db_user:jumaahklx758274@cluster0.yzk2tsj.mongodb.net/secureChat?appName=Cluster0";
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://jumkhlil_db_user:<jumaahklx758274>@cluster0.yzk2tsj.mongodb.net/?appName=Cluster0";
 
 // الاتصال بقاعدة بيانات MongoDB السحابية
 mongoose.connect(MONGO_URI).then(() => {
