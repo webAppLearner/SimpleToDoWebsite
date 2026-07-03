@@ -19,7 +19,7 @@ app.use(cors());
 app.use(express.json());
 
 // ربط مجلد الواجهة
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '..public')));
 
 // الذاكرة المؤقتة البديلة لقاعدة البيانات
 let tasks = [];
@@ -90,7 +90,7 @@ io.on('connection', (socket) => {
 
  
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, '..public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
