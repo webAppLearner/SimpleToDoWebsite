@@ -11,34 +11,30 @@
     <div id="notification-banner" class="hidden"></div>
 
     <div id="todo-view" class="container">
+        
+        <div class="app-notice">
+            <span class="notice-icon">🚀</span>
+            <p>
+                تم إطلاق النسخة السحابية الجديدة والمطورة!
+                <br>
+                <a href="https://unique-to-do-website.onrender.com" target="_blank" class="ad-link">جرب الموقع الجديد من هنا</a>
+            </p>
+        </div>
         <h2>مهامي</h2>
         <ul id="task-list"></ul>
         <div class="input-group">
             <input type="text" id="main-input" placeholder="إضافة مهمة جديدة..." autocomplete="off">
             <button id="submit-btn">إضافة</button>
         </div>
-
-        <div class="download-section">
-            <p> قريبا سيتم اضافة تطبيق للهواتف انتضرونا </p>
-            <a href="/app-release.apk" class="download-btn" download>
-                <span class="btn-icon">📱</span>
-                <div class="btn-text">
-                    <span class="btn-title">تحميل تطبيق الأندرويد</span>
-                    <span class="btn-subtitle">الإصدار المستقر v1.0.0 (APK)</span>
-                </div>
-            </a>
-        </div>
     </div>
 
     <div id="chat-view" class="container hidden">
         <div id="chat-header">
-            <h2>فطيم الافضل</h2>
+            <h2>لا تنسى ان تبتسم ايه الجميل</h2>
             <span id="typing-indicator" class="hidden">شخص ما يكتب...</span>
         </div>
         <div id="chat-messages"></div>
         <div class="input-group">
-            <input type="file" id="file-input" accept="image/*,video/*" style="display: none;">
-            <button id="attach-btn">📎</button>
             <input type="text" id="chat-input" placeholder="اكتب رسالة..." autocomplete="off">
             <button id="send-btn">إرسال</button>
         </div>
