@@ -279,3 +279,16 @@ button:hover {
     color: #888888;
     margin-top: 2px;
 }
+/* تصميم رابط الإعلان */
+.ad-link {
+    color: #4caf50;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 0.95rem;
+}
+.ad-link:hover {
+    color: #45a049;
+    text-decoration: underline;
+}
